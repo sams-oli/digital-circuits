@@ -1,0 +1,52 @@
+// Module Purpose:
+//		Driver do controlador VGA
+// -----------------------------------------------------------------------------
+// Entradas: 
+// 	clock: clock do sistem
+// -----------------------------------------------------------------------------		
+// Saidas:
+// 	hsync: sinal de sincronismo horizontal
+// 	vsync: sinal de sincronismo vertical
+// 	avideo: sinal de exibição na tela
+// 	red: sinal codificado em 4-bits para a cor vermelha
+// 	green: sinal codificado em 4-bits para a cor verde
+// 	blue: sinal codificado em 4-bits para a cor azul
+// -----------------------------------------------------------------------------
+`timescale 1ns / 1ps
+`default_nettype none
+`include "Display640x480.svh"
+
+module vgadriver(
+    input clock,
+    input [3:0] character_code,
+    output [10:0] screen_addr,
+    output [3:0] red, green, blue,
+    output hsync, vsync, avideo
+);
+
+    wire [`xbits-1:0] x;
+    wire [`ybits-1:0] y;
+    wire activevideo;
+    wire [`xbits-1:0] j = x[`xbits-1:4];
+    wire [`ybits-1:0] k = y[`xbits-1:4];
+
+    wire [11:0] bitmap_addr;
+    wire [11:0] color_value;
+
+    assign avideo = activevideo;
+
+    assign bitmap_addr = {character_code, y[3:0], x[3:0]};
+    assign screen_addr = ((j) + (40 * k));
+
+    vgasynctimer myVGATimer(clock, hsync, vsync, activevideo, x, y);
+
+    assign green[3:0]   = (activevideo == 1) ? color_value[11:8] : 4'b0;
+    assign blue[3:0] = (activevideo == 1) ? color_value[7:4] : 4'b0;
+    assign red[3:0]  = (activevideo == 1) ? color_value[3:0] : 4'b0;
+
+    bitmapram bitmap(
+        .bitmap_addr(bitmap_addr),
+        .color_value(color_value)
+    );
+
+endmodule

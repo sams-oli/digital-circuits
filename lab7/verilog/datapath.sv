@@ -1,0 +1,54 @@
+
+`default_nettype none
+`include "alu.sv"
+`include "aludec.sv"
+`include "register_file.sv"
+
+module datapath #(parameter Nloc = 32,parameter Dbits = 32)(
+
+	input wire clock,
+	input wire RegWrite,
+	input wire [$clog2(Nloc)-1:0] ReadAddr1,
+	input wire [$clog2(Nloc)-1:0] ReadAddr2,
+	input wire [$clog2(Nloc)-1:0] WriteAddr,
+	input wire [5:0] ALUFN,
+	input wire [Dbits-1 : 0] WriteData,
+	output wire [Dbits-1:0] ReadData1,
+	output wire [Dbits-1:0] ReadData2,
+	output wire [Dbits-1:0] ALUResult,
+	output wire FlagZ
+
+);
+
+wire [3:0] aluop;
+wire [Dbits-1:0] RD1,RD2;
+
+register_file #(Nloc,Dbits) REG (
+	.clock(clock),
+	.wr(RegWrite),            
+	.ReadAddr1(ReadAddr1), 
+	.ReadAddr2(ReadAddr2), 
+	.WriteAddr(WriteAddr), 	
+	.WriteData(WriteData),
+	.ReadData1(RD1), 
+	.ReadData2(RD2)
+);
+
+aludec ALUDEC(
+	.opcode(ALUFN),
+	.aluop (aluop)
+);
+
+alu ALU(
+	.RD1  (RD1),
+	.RD2  (RD2),
+	.aluop (aluop),
+	.out  (ALUResult)
+);
+
+assign ReadData1 = RD1;
+assign ReadData2 = RD2;
+assign FlagZ = (ALUResult == 0) ? 1'b1 : 1'b0;
+
+
+endmodule
